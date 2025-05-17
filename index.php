@@ -222,6 +222,7 @@
       background-color: transparent;
       border: 2px solid var(--primary);
       color: var(--primary);
+      margin-top: 16px;
     }
 
     .btn-outline:hover {
@@ -252,6 +253,8 @@
       width: 90%;
       max-width: 500px;
       position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
     .close-btn {
@@ -267,10 +270,19 @@
       border-radius: 50%;
       cursor: pointer;
       transition: var(--transition);
+      border: none;
+      color: #6b7280;
     }
 
     .close-btn:hover {
       background-color: #e5e7eb;
+    }
+
+    .modal h2 {
+      color: var(--primary);
+      margin-bottom: 20px;
+      font-size: 24px;
+      font-weight: 700;
     }
 
     .waves {
@@ -384,6 +396,7 @@
               <input type="password" id="student-password" name="password" class="form-control" placeholder="••••••••" required>
             </div>
             <button type="submit" class="btn">Login as Student</button>
+            <button type="button" class="btn btn-outline" id="register-btn">Register as Student</button>
           </form>
         </div>
 
@@ -418,6 +431,50 @@
     </div>
   </div>
 
+  <!-- Student Registration Modal -->
+  <div id="registration-modal" class="modal">
+    <div class="modal-content">
+      <button class="close-btn" id="close-modal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <h2>Student Registration</h2>
+      <form id="registration-form" method="post" action="auth/register.php">
+        <div class="form-group">
+          <label class="form-label" for="reg-first-name">First Name</label>
+          <input type="text" id="reg-first-name" name="first_name" class="form-control" placeholder="Enter your first name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-last-name">Last Name</label>
+          <input type="text" id="reg-last-name" name="last_name" class="form-control" placeholder="Enter your last name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Email</label>
+          <input type="email" id="reg-email" name="email" class="form-control" placeholder="your.email@example.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-phone">Phone Number</label>
+          <input type="tel" id="reg-phone" name="phone" class="form-control" placeholder="Enter your phone number" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-date-of-birth">Date of Birth</label>
+          <input type="date" id="reg-date-of-birth" name="date_of_birth" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Password</label>
+          <input type="password" id="reg-password" name="password" class="form-control" placeholder="Create a strong password" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-confirm-password">Confirm Password</label>
+          <input type="password" id="reg-confirm-password" name="confirm_password" class="form-control" placeholder="Confirm your password" required>
+        </div>
+        <button type="submit" class="btn">Register</button>
+      </form>
+    </div>
+  </div>
+
   <svg class="waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
     <path fill="rgba(67, 97, 238, 0.1)" fill-opacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,218.7C672,235,768,245,864,234.7C960,224,1056,192,1152,176C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
   </svg>
@@ -438,6 +495,55 @@
         const tabName = tab.dataset.tab;
         document.getElementById(`${tabName}-tab`).classList.add('active');
       });
+    });
+
+    // Modal functionality
+    const registerBtn = document.getElementById('register-btn');
+    const registrationModal = document.getElementById('registration-modal');
+    const closeModal = document.getElementById('close-modal');
+    const registrationForm = document.getElementById('registration-form');
+
+    // Open modal
+    registerBtn.addEventListener('click', () => {
+      registrationModal.style.display = 'flex';
+    });
+
+    // Close modal
+    closeModal.addEventListener('click', () => {
+      registrationModal.style.display = 'none';
+    });
+
+    // Close modal when clicking outside
+    registrationModal.addEventListener('click', (e) => {
+      if (e.target === registrationModal) {
+        registrationModal.style.display = 'none';
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && registrationModal.style.display === 'flex') {
+        registrationModal.style.display = 'none';
+      }
+    });
+
+    // Form validation for registration
+    registrationForm.addEventListener('submit', (e) => {
+      const password = document.getElementById('reg-password').value;
+      const confirmPassword = document.getElementById('reg-confirm-password').value;
+      
+      if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('Passwords do not match. Please try again.');
+        return false;
+      }
+      
+      // Additional password strength validation (optional)
+      if (password.length < 8) {
+        e.preventDefault();
+        alert('Password must be at least 8 characters long.');
+        return false;
+      }
     });
 
     // Form submission handling (maintain the original functionality)
