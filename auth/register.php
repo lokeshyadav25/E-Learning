@@ -274,19 +274,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <input type="email" id="email" name="email" placeholder="your.email@example.com" 
                        value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" required>
             </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="phone">Phone Number</label>
-                <input type="tel" id="phone" name="phone" placeholder="Enter your phone number" 
-                       value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label" for="date_of_birth">Date of Birth</label>
-                <input type="date" id="date_of_birth" name="date_of_birth" 
-                       value="<?php echo isset($_POST['date_of_birth']) ? htmlspecialchars($_POST['date_of_birth']) : ''; ?>" required>
-            </div>
-            
             <div class="form-group">
                 <label class="form-label" for="password">Password</label>
                 <input type="password" id="password" name="password" placeholder="Create a strong password" required>
