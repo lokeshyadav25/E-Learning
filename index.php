@@ -453,15 +453,6 @@
         <div class="form-group">
           <label class="form-label" for="reg-email">Email</label>
           <input type="email" id="reg-email" name="email" class="form-control" placeholder="your.email@example.com" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="reg-phone">Phone Number</label>
-          <input type="tel" id="reg-phone" name="phone" class="form-control" placeholder="Enter your phone number" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="reg-date-of-birth">Date of Birth</label>
-          <input type="date" id="reg-date-of-birth" name="date_of_birth" class="form-control" required>
-        </div>
         <div class="form-group">
           <label class="form-label" for="reg-password">Password</label>
           <input type="password" id="reg-password" name="password" class="form-control" placeholder="Create a strong password" required>
