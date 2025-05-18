@@ -17,7 +17,7 @@ if (!isset($_GET['quiz_id']) || !is_numeric($_GET['quiz_id'])) {
 
 $quiz_id = (int)$_GET['quiz_id'];
 
-// Fetch quiz details to edit - join with courses to check faculty ownership
+// Fetch quiz details
 $stmt = $conn->prepare("
     SELECT q.* 
     FROM quizzes q
@@ -33,7 +33,7 @@ if (!$quiz) {
     exit();
 }
 
-// Handle form submission to update quiz title or description
+// Handle quiz update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_quiz'])) {
     $title = $_POST['title'] ?? '';
     $description = $_POST['description'] ?? '';
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_quiz'])) {
     }
 }
 
-// Handle form submission to add a new question
+// Handle add question
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
     $question_text = $_POST['question_text'] ?? '';
     $option_a = $_POST['option_a'] ?? '';
@@ -58,14 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
     $correct_option = $_POST['correct_option'] ?? '';
 
     if ($question_text && $option_a && $option_b && $correct_option) {
-        // Insert into quizzes table — based on your table structure, I assume questions are stored in 'quizzes' table (check this below)
-        // But since your earlier quiz structure has question, option_a.. correct_option fields in quizzes, 
-        // it means one row per question (so your quiz is multiple rows in quizzes table?)
-        // To maintain this structure, new question insert is just a new row in quizzes table linked to same course_id with same title?
-
-        // But that would duplicate quiz title, not ideal.
-        // So better to insert question row as a new record in quizzes table with course_id same as original quiz's course_id, question fields filled.
-
         $insertStmt = $conn->prepare("
             INSERT INTO quizzes 
             (course_id, title, question, option_a, option_b, option_c, option_d, correct_option, created_at)
@@ -74,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
         $insertStmt->bind_param(
             "isssssss",
             $quiz['course_id'],
-            $quiz['title'],  // Keep same quiz title for new question
+            $quiz['title'],
             $question_text,
             $option_a,
             $option_b,
@@ -93,10 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_question'])) {
     }
 }
 
-// Fetch all questions for this quiz (all rows with same title and course_id)
-$questionsStmt = $conn->prepare("
-    SELECT * FROM quizzes WHERE course_id = ? AND title = ? ORDER BY created_at ASC
-");
+// Fetch questions
+$questionsStmt = $conn->prepare("SELECT * FROM quizzes WHERE course_id = ? AND title = ? ORDER BY created_at ASC");
 $questionsStmt->bind_param("is", $quiz['course_id'], $quiz['title']);
 $questionsStmt->execute();
 $questionsResult = $questionsStmt->get_result();
@@ -105,20 +95,108 @@ $questionsResult = $questionsStmt->get_result();
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Edit Quiz - <?= htmlspecialchars($quiz['title']) ?></title>
 <style>
-    body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
-    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
-    h1, h2 { color: #333; }
-    form { margin-bottom: 30px; }
-    label { display: block; margin: 10px 0 5px; }
-    input[type=text], textarea, select { width: 100%; padding: 8px; box-sizing: border-box; }
-    button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    .error { color: red; }
-    .success { color: green; }
-    .question { border-bottom: 1px solid #ddd; padding: 10px 0; }
+    body {
+        font-family: "Segoe UI", sans-serif;
+        background: linear-gradient(to right, #e3f2fd, #bbdefb);
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 40px auto;
+        background: #ffffff;
+        padding: 30px 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    h1, h2 {
+        color: #1565c0;
+        margin-top: 0;
+    }
+
+    form {
+        margin-bottom: 40px;
+    }
+
+    label {
+        display: block;
+        margin-top: 15px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    input[type="text"], textarea, select {
+        width: 100%;
+        padding: 10px;
+        margin-top: 6px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+        transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+        border-color: #42a5f5;
+        outline: none;
+    }
+
+    button {
+        margin-top: 20px;
+        background: #1976d2;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+    button:hover {
+        background: #1565c0;
+    }
+
+    .error {
+        color: #d32f2f;
+        margin: 10px 0;
+    }
+
+    .success {
+        color: #2e7d32;
+        margin: 10px 0;
+    }
+
+    .question {
+        background: #f1f8ff;
+        padding: 15px;
+        border: 1px solid #90caf9;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .question ul {
+        padding-left: 20px;
+    }
+
+    .question li {
+        margin: 4px 0;
+    }
+
+    a {
+        color: #1976d2;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
 </style>
 </head>
 <body>
@@ -126,22 +204,21 @@ $questionsResult = $questionsStmt->get_result();
     <h1>Edit Quiz: <?= htmlspecialchars($quiz['title']) ?></h1>
 
     <?php if (!empty($error)): ?>
-        <p class="error"><?= htmlspecialchars($error) ?></p>
+        <div class="error"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
     <?php if (isset($_GET['success'])): ?>
-        <p class="success">Quiz updated successfully!</p>
+        <div class="success">Quiz updated successfully!</div>
     <?php endif; ?>
 
     <?php if (isset($_GET['question_added'])): ?>
-        <p class="success">Question added successfully!</p>
+        <div class="success">Question added successfully!</div>
     <?php endif; ?>
 
-    <!-- Update quiz details -->
     <form method="post">
-        <input type="hidden" name="update_quiz" value="1" />
+        <input type="hidden" name="update_quiz" value="1">
         <label for="title">Quiz Title</label>
-        <input type="text" name="title" id="title" value="<?= htmlspecialchars($quiz['title']) ?>" required />
+        <input type="text" name="title" id="title" value="<?= htmlspecialchars($quiz['title']) ?>" required>
 
         <label for="description">Description</label>
         <textarea name="description" id="description" rows="4"><?= htmlspecialchars($quiz['description'] ?? '') ?></textarea>
@@ -151,22 +228,22 @@ $questionsResult = $questionsStmt->get_result();
 
     <h2>Add New Question</h2>
     <form method="post">
-        <input type="hidden" name="add_question" value="1" />
+        <input type="hidden" name="add_question" value="1">
 
         <label for="question_text">Question Text</label>
         <textarea name="question_text" id="question_text" rows="3" required></textarea>
 
         <label for="option_a">Option A</label>
-        <input type="text" name="option_a" id="option_a" required />
+        <input type="text" name="option_a" id="option_a" required>
 
         <label for="option_b">Option B</label>
-        <input type="text" name="option_b" id="option_b" required />
+        <input type="text" name="option_b" id="option_b" required>
 
         <label for="option_c">Option C</label>
-        <input type="text" name="option_c" id="option_c" />
+        <input type="text" name="option_c" id="option_c">
 
         <label for="option_d">Option D</label>
-        <input type="text" name="option_d" id="option_d" />
+        <input type="text" name="option_d" id="option_d">
 
         <label for="correct_option">Correct Option</label>
         <select name="correct_option" id="correct_option" required>
@@ -189,13 +266,11 @@ $questionsResult = $questionsStmt->get_result();
                 <p><strong><?= htmlspecialchars($q['question']) ?></strong></p>
                 <ul>
                     <?php
-                        for ($i = 'a'; $i <= 'd'; $i++) {
-                            $optName = "option_$i";
-                            $optKey = "option_" . $i;
-                            $optValue = $q[$optKey];
-                            if (!empty($optValue)) {
-                                $correctMark = ($q['correct_option'] === $optKey) ? "&#10004;" : "";
-                                echo "<li>" . htmlspecialchars($optValue) . " $correctMark</li>";
+                        foreach (['a', 'b', 'c', 'd'] as $opt) {
+                            $optKey = "option_$opt";
+                            if (!empty($q[$optKey])) {
+                                $correct = ($q['correct_option'] === $optKey) ? " ✅" : "";
+                                echo "<li>" . htmlspecialchars($q[$optKey]) . "$correct</li>";
                             }
                         }
                     ?>
@@ -204,7 +279,7 @@ $questionsResult = $questionsStmt->get_result();
         <?php endwhile; ?>
     <?php endif; ?>
 
-    <p><a href="manage-quiz.php?course_id=<?= (int)$quiz['course_id'] ?>">Back to Manage Quizzes</a></p>
+    <p><a href="manage-quiz.php?course_id=<?= (int)$quiz['course_id'] ?>">⬅ Back to Manage Quizzes</a></p>
 </div>
 </body>
 </html>

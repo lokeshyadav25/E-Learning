@@ -28,6 +28,38 @@ if (!$course) {
     exit();
 }
 
+// Handle quiz deletion
+if (isset($_GET['delete_quiz']) && is_numeric($_GET['delete_quiz'])) {
+    $quiz_id_to_delete = intval($_GET['delete_quiz']);
+
+    // Check if the quiz belongs to this course
+    $checkQuiz = $conn->prepare("SELECT id FROM quizzes WHERE id = ? AND course_id = ?");
+    $checkQuiz->bind_param("ii", $quiz_id_to_delete, $course_id);
+    $checkQuiz->execute();
+    $quizExists = $checkQuiz->get_result()->fetch_assoc();
+    $checkQuiz->close();
+
+    if ($quizExists) {
+        // Delete related questions first
+        $delQuestions = $conn->prepare("DELETE FROM quiz_questions WHERE quiz_id = ?");
+        $delQuestions->bind_param("i", $quiz_id_to_delete);
+        $delQuestions->execute();
+        $delQuestions->close();
+
+        // Then delete the quiz
+        $delQuiz = $conn->prepare("DELETE FROM quizzes WHERE id = ?");
+        $delQuiz->bind_param("i", $quiz_id_to_delete);
+        if ($delQuiz->execute()) {
+            $success = "Quiz deleted successfully.";
+        } else {
+            $error = "Error deleting quiz.";
+        }
+        $delQuiz->close();
+    } else {
+        $error = "Quiz not found or does not belong to this course.";
+    }
+}
+
 // Handle new quiz submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $quiz_title = trim($_POST['quiz_title'] ?? '');
@@ -50,7 +82,6 @@ $quizStmt = $conn->prepare("SELECT * FROM quizzes WHERE course_id = ? ORDER BY c
 $quizStmt->bind_param("i", $course_id);
 $quizStmt->execute();
 $quizzes = $quizStmt->get_result();
-
 ?>
 
 <!DOCTYPE html>
@@ -72,7 +103,7 @@ $quizzes = $quizStmt->get_result();
         }
         button:hover { background-color: #0056b3; }
         ul { list-style-type: none; padding-left: 0; }
-        li { padding: 10px; background: #f1f1f1; margin-bottom: 10px; border-radius: 4px; }
+        li { padding: 10px; background: #f1f1f1; margin-bottom: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
         a { color: #007BFF; text-decoration: none; }
         a:hover { text-decoration: underline; }
         .message { margin-bottom: 20px; padding: 10px; border-radius: 4px; }
@@ -80,6 +111,7 @@ $quizzes = $quizStmt->get_result();
         .error { background-color: #f8d7da; color: #721c24; }
         .back-link { display: inline-block; margin-top: 20px; color: #555; text-decoration: none; }
         .back-link:hover { text-decoration: underline; }
+        .actions a { margin-left: 10px; color: red; }
     </style>
 </head>
 <body>
@@ -101,10 +133,16 @@ $quizzes = $quizStmt->get_result();
             <ul>
                 <?php while ($quiz = $quizzes->fetch_assoc()): ?>
                     <li>
-                        <a href="edit-quiz.php?quiz_id=<?= $quiz['id'] ?>">
-                            <?= htmlspecialchars($quiz['title']) ?>
-                        </a>
-                        (Created on <?= date('d M Y', strtotime($quiz['created_on'])) ?>)
+                        <div>
+                            <strong><a href="edit-quiz.php?quiz_id=<?= $quiz['id'] ?>">
+                                <?= htmlspecialchars($quiz['title']) ?>
+                            </a></strong>
+                            <br>
+                            <small>Created on <?= date('d M Y', strtotime($quiz['created_on'])) ?></small>
+                        </div>
+                        <div class="actions">
+                            <a href="?course_id=<?= $course_id ?>&delete_quiz=<?= $quiz['id'] ?>" onclick="return confirm('Are you sure you want to delete this quiz?');">Delete</a>
+                        </div>
                     </li>
                 <?php endwhile; ?>
             </ul>
@@ -118,7 +156,6 @@ $quizzes = $quizStmt->get_result();
 </html>
 
 <?php
-// Close prepared statements
 $stmt->close();
 $quizStmt->close();
 $conn->close();
