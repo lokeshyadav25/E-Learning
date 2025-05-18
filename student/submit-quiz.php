@@ -30,10 +30,64 @@ while ($row = $result->fetch_assoc()) {
     }
     $total++;
 }
-
-// You can store score in a `results` table here if needed.
-
-echo "<h2>Quiz Submitted!</h2>";
-echo "<p>You scored $score out of $total.</p>";
 ?>
-<p><a href="dashboard.php">Return to Dashboard</a></p>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Quiz Result</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(to right, #dbeafe, #eff6ff); /* Light blue tones */
+            color: #1e3a8a; /* Deep blue */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .result-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 50, 0.1);
+            text-align: center;
+            max-width: 400px;
+        }
+
+        h2 {
+            color: #2563eb; /* Bright blue */
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        a:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="result-container">
+        <h2>Quiz Submitted!</h2>
+        <p>You scored <?php echo $score; ?> out of <?php echo $total; ?>.</p>
+        <a href="dashboard.php">Return to Dashboard</a>
+    </div>
+</body>
+</html>
