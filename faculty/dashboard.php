@@ -438,7 +438,7 @@ $coursesResult = $coursesStmt->get_result();
 <body>
     <div class="container">
         <div class="header">
-            <h1>Welcome, <?= htmlspecialchars($faculty['full_name'] ?? 'Faculty') ?>! 👋</h1>
+            <h1>Welcome, <?= htmlspecialchars($faculty['full_name'] ?? 'Faculty') ?>! 👏</h1>
             <a href="../index.php" class="btn logout">Logout</a>
         </div>
 

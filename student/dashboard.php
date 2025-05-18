@@ -398,7 +398,7 @@ while ($row = $enrolledResult->fetch_assoc()) {
 <body>
     <div class="header">
         <div class="header-content">
-            <h1 class="welcome-title">Welcome, <?= htmlspecialchars($student['name'] ?? 'Student') ?>!</h1>
+            <h1 class="welcome-title">Welcome, <?= htmlspecialchars($student['full_name'] ?? 'Student') ?>!</h1>
             <p class="welcome-subtitle">Your learning journey awaits</p>
         </div>
     </div>

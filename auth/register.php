@@ -1,22 +1,22 @@
 <?php
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
+
 include("../includes/db.php");
 
-$success = "";
 $error = "";
+$success = "";
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
-    $date_of_birth = trim($_POST['date_of_birth']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
+    // Sanitize and get POST data
+    $first_name = trim($_POST["first_name"] ?? "");
+    $last_name = trim($_POST["last_name"] ?? "");
+    $email = trim($_POST["email"] ?? "");
+    $password = $_POST["password"] ?? "";
+    $confirm_password = $_POST["confirm_password"] ?? "";
 
     // Validation
-    if (empty($first_name) || empty($last_name) || empty($email) || empty($phone) || empty($date_of_birth) || empty($password) || empty($confirm_password)) {
+    if (empty($first_name) || empty($last_name) || empty($email) || empty($password) || empty($confirm_password)) {
         $error = "Please fill in all fields.";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email format.";
@@ -24,17 +24,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $error = "Passwords do not match.";
     } elseif (strlen($password) < 8) {
         $error = "Password must be at least 8 characters long.";
-    } elseif (!preg_match('/^[0-9]{10,15}$/', $phone)) {
-        $error = "Please enter a valid phone number (10-15 digits).";
+    } elseif (!preg_match("/[A-Z]/", $password)) {
+        $error = "Password must contain at least one uppercase letter.";
     } else {
-        // Hash the password
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        
-        // Combine first and last name for full_name
-        $full_name = $first_name . ' ' . $last_name;
-        
+        // All validations passed, proceed
+
         // Check if email already exists
-        $check = $conn->prepare("SELECT * FROM students WHERE email = ?");
+        $check = $conn->prepare("SELECT id FROM students WHERE email = ?");
         $check->bind_param("s", $email);
         $check->execute();
         $result = $check->get_result();
@@ -42,17 +38,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($result->num_rows > 0) {
             $error = "Email is already registered.";
         } else {
-            // Insert new student
-            $stmt = $conn->prepare("INSERT INTO students (first_name, last_name, full_name, email, phone, date_of_birth, password, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
-            $stmt->bind_param("sssssss", $first_name, $last_name, $full_name, $email, $phone, $date_of_birth, $hashed_password);
-            
+            // Hash password
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+            // Create full name from first and last name
+            $full_name = $first_name . ' ' . $last_name;
+
+            // Insert new user - only using the fields that exist in the database
+            $stmt = $conn->prepare("INSERT INTO students (full_name, email, password, created_at) VALUES (?, ?, ?, NOW())");
+            $stmt->bind_param("sss", $full_name, $email, $hashed_password);
+
             if ($stmt->execute()) {
+                // Get the user's ID for potential use in session
+                $new_user_id = $conn->insert_id;
+                
                 $success = "Registration successful! You can now login.";
-                // Optionally redirect to login page after a delay
-                // header("refresh:3;url=../index.php");
+                // Clear POST data so form resets
+                $first_name = $last_name = $email = "";
             } else {
-                $error = "Registration failed. Please try again.";
+                $error = "Registration failed: " . $conn->error;
             }
+
             $stmt->close();
         }
         $check->close();
@@ -63,23 +69,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Student Registration | E-Learning Platform</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - Technologiya</title>
     <style>
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --accent: #4cc9f0;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --success: #4ade80;
-            --white: #ffffff;
-            --radius: 12px;
-            --shadow: 0 10px 30px rgba(67, 97, 238, 0.1);
-            --transition: all 0.3s ease;
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -87,236 +80,297 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, var(--light) 0%, #e9f2ff 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
-            color: var(--dark);
-            line-height: 1.6;
+            justify-content: center;
             padding: 20px;
         }
 
-        .registration-container {
-            background: var(--white);
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             padding: 40px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            max-width: 500px;
+            max-width: 480px;
             width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 16px;
+        .header {
             text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
+            margin-bottom: 30px;
         }
 
-        .logo svg {
-            width: 28px;
-            height: 28px;
+        .header h1 {
+            color: #2c3e50;
+            font-size: 32px;
+            font-weight: 300;
+            margin-bottom: 10px;
         }
 
-        h2 {
-            color: var(--primary);
-            margin-bottom: 24px;
-            text-align: center;
-            font-size: 28px;
-            font-weight: 700;
+        .header .subtitle {
+            color: #7f8c8d;
+            font-size: 16px;
+            font-weight: 400;
         }
 
         .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #4b5563;
+            margin-bottom: 25px;
         }
 
         .form-row {
             display: flex;
-            gap: 16px;
+            gap: 15px;
         }
 
         .form-row .form-group {
             flex: 1;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 500;
+            font-size: 14px;
         }
 
         input[type="text"],
         input[type="email"],
-        input[type="tel"],
-        input[type="date"],
         input[type="password"] {
             width: 100%;
-            padding: 14px 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: var(--radius);
+            padding: 15px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
             font-size: 16px;
-            transition: var(--transition);
+            font-family: 'Segoe UI', sans-serif;
+            transition: all 0.3s ease;
+            background: #ffffff;
         }
 
-        input:focus {
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus {
             outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px 24px;
-            background-color: var(--primary);
-            border: none;
-            color: var(--white);
-            border-radius: var(--radius);
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn:hover {
-            background-color: var(--secondary);
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
             transform: translateY(-2px);
         }
 
-        .message {
-            margin-bottom: 20px;
-            padding: 14px 16px;
-            border-radius: var(--radius);
-            font-size: 14px;
-            font-weight: 500;
+        .btn-register {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Segoe UI', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-register:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-register:active {
+            transform: translateY(0);
         }
 
         .error {
-            background-color: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fecaca;
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
+            border-left: 4px solid #c0392b;
         }
 
         .success {
-            background-color: #dcfce7;
-            color: #16a34a;
-            border: 1px solid #bbf7d0;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2);
+            border-left: 4px solid #27ae60;
         }
 
-        .back-link {
+        .login-link {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #e1e8ed;
         }
 
-        .back-link a {
-            color: var(--primary);
+        .login-link a {
+            color: #3498db;
             text-decoration: none;
             font-weight: 500;
-            transition: var(--transition);
+            transition: color 0.3s ease;
         }
 
-        .back-link a:hover {
-            color: var(--secondary);
-            text-decoration: underline;
+        .login-link a:hover {
+            color: #2980b9;
         }
 
+        .password-requirements {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #7f8c8d;
+            line-height: 1.4;
+        }
+
+        /* Mobile responsiveness */
         @media (max-width: 768px) {
-            .registration-container {
-                padding: 30px 20px;
+            .container {
+                margin: 10px;
+                padding: 25px;
             }
-            
+
             .form-row {
                 flex-direction: column;
                 gap: 0;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+        }
+
+        /* Animation for form elements */
+        .form-group {
+            animation: slideInUp 0.5s ease forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+        .form-group:nth-child(4) { animation-delay: 0.4s; }
+        .form-group:nth-child(5) { animation-delay: 0.5s; }
+
+        @keyframes slideInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .container {
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
             }
         }
     </style>
 </head>
 <body>
-    <div class="registration-container">
-        <div class="logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-            </svg>
-            E-Learning
+    <div class="container">
+        <div class="header">
+            <h1>Create Account</h1>
+            <p class="subtitle">Join Technologia today</p>
         </div>
-        
-        <h2>Student Registration</h2>
 
         <?php if ($error): ?>
-            <div class="message error"><?php echo htmlspecialchars($error); ?></div>
-        <?php elseif ($success): ?>
-            <div class="message success"><?php echo htmlspecialchars($success); ?></div>
+            <div class="error"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
-        <form method="post" novalidate>
+        <?php if ($success): ?>
+            <div class="success"><?php echo htmlspecialchars($success); ?></div>
+        <?php endif; ?>
+
+        <form method="post" action="">
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label" for="first_name">First Name</label>
-                    <input type="text" id="first_name" name="first_name" placeholder="Enter your first name" 
-                           value="<?php echo isset($_POST['first_name']) ? htmlspecialchars($_POST['first_name']) : ''; ?>" required>
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" value="<?php echo htmlspecialchars($first_name ?? ''); ?>" required />
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="last_name">Last Name</label>
-                    <input type="text" id="last_name" name="last_name" placeholder="Enter your last name" 
-                           value="<?php echo isset($_POST['last_name']) ? htmlspecialchars($_POST['last_name']) : ''; ?>" required>
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" value="<?php echo htmlspecialchars($last_name ?? ''); ?>" required />
                 </div>
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label" for="email">Email Address</label>
-                <input type="email" id="email" name="email" placeholder="your.email@example.com" 
-                       value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" required>
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($email ?? ''); ?>" required />
             </div>
+
             <div class="form-group">
-                <label class="form-label" for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required />
+                <div class="password-requirements">
+                    Password must be at least 8 characters with one uppercase letter
+                </div>
             </div>
-            
+
             <div class="form-group">
-                <label class="form-label" for="confirm_password">Confirm Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm your password" required>
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required />
             </div>
-            
-            <button type="submit" class="btn">Register</button>
+
+            <button type="submit" class="btn-register">Create Account</button>
         </form>
 
-        <div class="back-link">
-            <a href="../index.php">← Back to Login</a>
+        <div class="login-link">
+            Already have an account? <a href="../index.php">Login here</a>
         </div>
     </div>
 
     <script>
-        // Client-side password validation
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
+        // Add some interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            // Password confirmation validation
+            const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirm_password');
             
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('Passwords do not match. Please try again.');
-                return false;
+            function validatePassword() {
+                if (password.value !== confirmPassword.value) {
+                    confirmPassword.setCustomValidity("Passwords don't match");
+                } else {
+                    confirmPassword.setCustomValidity('');
+                }
             }
             
-            if (password.length < 8) {
-                e.preventDefault();
-                alert('Password must be at least 8 characters long.');
-                return false;
-            }
+            password.addEventListener('input', validatePassword);
+            confirmPassword.addEventListener('input', validatePassword);
+            
+            // Enhanced focus effects
+            const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.parentElement.style.transform = 'scale(1.02)';
+                });
+                
+                input.addEventListener('blur', function() {
+                    this.parentElement.style.transform = 'scale(1)';
+                });
+            });
         });
-
-        // Auto-hide success message and redirect
-        <?php if ($success): ?>
-        setTimeout(function() {
-            window.location.href = '../index.php';
-        }, 3000);
-        <?php endif; ?>
     </script>
 </body>
 </html>

@@ -2,7 +2,6 @@
 session_start();
 include '../includes/db.php';
 
-// Check faculty login
 if (!isset($_SESSION['faculty_id'])) {
     header("Location: login.php");
     exit();
@@ -10,13 +9,12 @@ if (!isset($_SESSION['faculty_id'])) {
 
 $faculty_id = $_SESSION['faculty_id'];
 
-// Validate course_id from GET
 if (!isset($_GET['course_id']) || !is_numeric($_GET['course_id'])) {
     die("Invalid Course ID.");
 }
 $course_id = (int)$_GET['course_id'];
 
-// Verify that the course belongs to this faculty
+// Check if the course belongs to this faculty
 $stmt = $conn->prepare("SELECT * FROM courses WHERE id = ? AND faculty_id = ?");
 $stmt->bind_param("ii", $course_id, $faculty_id);
 $stmt->execute();
@@ -28,7 +26,6 @@ if (!$course) {
 
 $message = '';
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['content_file']) && $_FILES['content_file']['error'] === UPLOAD_ERR_OK) {
         $uploadDir = '../uploads/course_content/';
@@ -36,35 +33,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mkdir($uploadDir, 0755, true);
         }
 
-        $fileTmpPath = $_FILES['content_file']['tmp_name'];
-        $fileName = basename($_FILES['content_file']['name']);
-        $fileSize = $_FILES['content_file']['size'];
-        $fileType = $_FILES['content_file']['type'];
-        $fileNameCmps = explode(".", $fileName);
-        $fileExtension = strtolower(end($fileNameCmps));
+        $fileTmp = $_FILES['content_file']['tmp_name'];
+        $originalName = basename($_FILES['content_file']['name']);
+        $fileExt = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $newFileName = 'course_' . $course_id . '_' . time() . '_' . preg_replace("/[^a-zA-Z0-9_\.-]/", "_", $originalName);
 
-        // Sanitize file name
-        $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+        $allowedExts = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'mp4', 'avi', 'mov', 'zip'];
 
-        // Allowed file extensions (adjust as needed)
-        $allowedExtensions = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'mp4', 'avi', 'mov', 'zip'];
+        if (in_array($fileExt, $allowedExts)) {
+            $targetPath = $uploadDir . $newFileName;
+            if (move_uploaded_file($fileTmp, $targetPath)) {
+                // Insert without original_name column
+                $insert = $conn->prepare("INSERT INTO course_contents (course_id, filename, uploaded_on) VALUES (?, ?, NOW())");
+                $insert->bind_param("is", $course_id, $newFileName);
+                $insert->execute();
 
-        if (in_array($fileExtension, $allowedExtensions)) {
-            $destPath = $uploadDir . $newFileName;
-            if (move_uploaded_file($fileTmpPath, $destPath)) {
-                // Insert into database
-                $insertStmt = $conn->prepare("INSERT INTO course_contents (course_id, filename, original_name, uploaded_on) VALUES (?, ?, ?, NOW())");
-                $insertStmt->bind_param("iss", $course_id, $newFileName, $fileName);
-                if ($insertStmt->execute()) {
-                    $message = "File uploaded successfully!";
-                } else {
-                    $message = "Database error: Could not save file info.";
-                }
+                $message = "File uploaded successfully!";
             } else {
                 $message = "Error moving the uploaded file.";
             }
         } else {
-            $message = "Upload failed. Allowed file types: " . implode(", ", $allowedExtensions);
+            $message = "Invalid file type. Allowed: " . implode(', ', $allowedExts);
         }
     } else {
         $message = "No file uploaded or upload error.";
@@ -75,12 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>Upload Content - <?= htmlspecialchars($course['title']) ?></title>
-    <link rel="stylesheet" href="../assets/style.css" />
+    <link rel="stylesheet" href="../assets/style.css">
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
-        .container { background: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto; box-shadow: 0 0 8px rgba(0,0,0,0.1);}
+        .container { background: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
         label, input, button { display: block; width: 100%; margin-top: 10px; }
         button { background: #17a2b8; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
         .message { margin-top: 15px; color: green; }

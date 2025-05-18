@@ -69,21 +69,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8" />
     <title>Edit Course - Admin Panel</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        form { max-width: 600px; margin: auto; }
-        label { display: block; margin-top: 15px; font-weight: bold; }
-        input[type="text"], textarea, select {
-            width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #ccc;
+        /* Technologia Themed Styles */
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f9ff;
+            color: #003366;
+            margin: 20px;
+        }
+        h1 {
+            color: #0059b3;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        form {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 25px 30px;
+            border-radius: 8px;
+            box-shadow: 0 8px 15px rgba(0, 91, 187, 0.2);
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: 600;
+            color: #004080;
+        }
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            margin-top: 6px;
+            border-radius: 6px;
+            border: 1.5px solid #99c2ff;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #0059b3;
+            box-shadow: 0 0 8px #80b3ff;
+            background-color: #f0f7ff;
         }
         button {
-            margin-top: 20px; padding: 10px 20px; background-color: #007BFF; border: none; color: white; border-radius: 5px;
+            margin-top: 25px;
+            padding: 12px 25px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
             cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease;
         }
-        button:hover { background-color: #0056b3; }
-        .error { color: red; margin-top: 10px; }
-        .success { color: green; margin-top: 10px; }
-        a { display: inline-block; margin-top: 15px; text-decoration: none; color: #007BFF; }
-        a:hover { text-decoration: underline; }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error, .success {
+            max-width: 600px;
+            margin: 15px auto 0;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 15px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .error {
+            background-color: #ffd6d6;
+            color: #b30000;
+            border: 1.5px solid #b30000;
+        }
+        .success {
+            background-color: #d6f5d6;
+            color: #2d662d;
+            border: 1.5px solid #2d662d;
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #007bff;
+            font-weight: 600;
+            transition: color 0.3s ease;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        a:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -106,7 +188,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <label for="faculty_id">Faculty</label>
         <select name="faculty_id" id="faculty_id" required>
             <option value="">-- Select Faculty --</option>
-            <?php while ($faculty = $faculty_result->fetch_assoc()): ?>
+            <?php 
+            // Reset pointer for re-use since fetch_assoc was called before
+            $faculty_result->data_seek(0);
+            while ($faculty = $faculty_result->fetch_assoc()): ?>
                 <option value="<?php echo $faculty['id']; ?>" <?php echo ($faculty['id'] == $faculty_id) ? 'selected' : ''; ?>>
                     <?php echo htmlspecialchars($faculty['full_name']); ?>
                 </option>
