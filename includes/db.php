@@ -1,8 +1,9 @@
 <?php
-$servername = "localhost";
-$username = "root";  // your database username
-$password = "";  // your database password (leave empty for WAMP default)
-$dbname = "elearning_db";  // your database name
+$url = parse_url(getenv("DATABASE_URL"));
+$servername = $url["host"];
+$username = $url["user"];
+$password = $url["pass"];
+$dbname = ltrim($url["path"], "/");
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
